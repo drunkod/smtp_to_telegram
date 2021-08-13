@@ -170,8 +170,7 @@ func SendEmailToTelegram(e *mail.Envelope,
 	telegramConfig *TelegramConfig) error {
 
 	message := FormatEmail(e, telegramConfig.messageTemplate)
-
-	for _, chatId := range strings.Split(telegramConfig.telegramChatIds, ",") {
+	chatId := FormatTgChatId(e)
 
 		// Apparently the native golang's http client supports
 		// http, https and socks5 proxies via HTTP_PROXY/HTTPS_PROXY env vars
@@ -198,7 +197,7 @@ func SendEmailToTelegram(e *mail.Envelope,
 				SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
 			))
 		}
-	}
+	
 	return nil
 }
 
@@ -220,6 +219,13 @@ func FormatEmail(e *mail.Envelope, messageTemplate string) string {
 		"{body}", text,
 	)
 	return r.Replace(messageTemplate)
+}
+
+func FormatTgChatId(e *mail.Envelope) string {
+	return strings.TrimRight(MapAddresses(e.RcptTo), "@tg.com")
+}
+func FormatVKChatId(e *mail.Envelope) string {
+	return strings.TrimRight(MapAddresses(e.RcptTo), "@vk.com")
 }
 
 func MapAddresses(a []mail.Address) string {
