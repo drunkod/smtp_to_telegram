@@ -217,7 +217,7 @@ func FormatEmail(e *mail.Envelope, messageTemplate string) string {
 		"{from}", e.MailFrom.String(),
 		"{to}", MapAddresses(e.RcptTo),
 		"{subject}", env.GetHeader("subject"),
-		"{body}", text,
+		"{body}", FormatTgChatId(e) + text,
 	)
 	return r.Replace(messageTemplate)
 }
