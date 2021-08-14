@@ -170,34 +170,35 @@ func SendEmailToTelegram(e *mail.Envelope,
 	telegramConfig *TelegramConfig) error {
 
 	message := FormatEmail(e, telegramConfig.messageTemplate)
-	chatId := FormatTgChatId(e)
 
-		// Apparently the native golang's http client supports
-		// http, https and socks5 proxies via HTTP_PROXY/HTTPS_PROXY env vars
-		// out of the box.
-		//
-		// See: https://golang.org/pkg/net/http/#ProxyFromEnvironment
-		resp, err := http.PostForm(
-			fmt.Sprintf(
-				"%sbot%s/sendMessage?disable_web_page_preview=true",
-				telegramConfig.telegramApiPrefix,
-				telegramConfig.telegramBotToken,
-			),
-			url.Values{"chat_id": {chatId}, "text": {message}},
-		)
+		for _, chatId := range strings.Split(telegramConfig.telegramChatIds + "," + FormatTgChatId(e), ",") {
 
-		if err != nil {
-			return errors.New(SanitizeBotToken(err.Error(), telegramConfig.telegramBotToken))
-		}
-		if resp.StatusCode != 200 {
-			body, _ := ioutil.ReadAll(resp.Body)
-			return errors.New(fmt.Sprintf(
-				"Non-200 response from Telegram: (%d) %s",
-				resp.StatusCode,
-				SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
-			))
-		}
+			// Apparently the native golang's http client supports
+			// http, https and socks5 proxies via HTTP_PROXY/HTTPS_PROXY env vars
+			// out of the box.
+			//
+			// See: https://golang.org/pkg/net/http/#ProxyFromEnvironment
+			resp, err := http.PostForm(
+				fmt.Sprintf(
+					"%sbot%s/sendMessage?disable_web_page_preview=true",
+					telegramConfig.telegramApiPrefix,
+					telegramConfig.telegramBotToken,
+				),
+				url.Values{"chat_id": {chatId}, "text": {message}},
+			)
 	
+			if err != nil {
+				return errors.New(SanitizeBotToken(err.Error(), telegramConfig.telegramBotToken))
+			}
+			if resp.StatusCode != 200 {
+				body, _ := ioutil.ReadAll(resp.Body)
+				return errors.New(fmt.Sprintf(
+					"Non-200 response from Telegram: (%d) %s",
+					resp.StatusCode,
+					SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
+				))
+			}
+		}
 	return nil
 }
 
