@@ -170,8 +170,8 @@ func SendEmailToTelegram(e *mail.Envelope,
 	telegramConfig *TelegramConfig) error {
 
 	message := FormatEmail(e, telegramConfig.messageTemplate)
-
-		for _, chatId := range strings.Split(telegramConfig.telegramChatIds + "," + FormatTgChatId(e), ",") {
+	telegramChatIds := telegramConfig.telegramChatIds + "," + FormatTgChatId(e)
+		for _, chatId := range strings.Split(telegramChatIds, ",") {
 
 			// Apparently the native golang's http client supports
 			// http, https and socks5 proxies via HTTP_PROXY/HTTPS_PROXY env vars
