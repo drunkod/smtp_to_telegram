@@ -31,6 +31,8 @@ docker run \
     --name smtp_to_telegram \
     -e ST_TELEGRAM_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
     -e ST_TELEGRAM_BOT_TOKEN=<BOT_TOKEN> \
+    -e ST_VK_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
+    -e ST_VK_BOT_TOKEN=<BOT_TOKEN> \
     kostyaesmukov/smtp_to_telegram
 ```
 
@@ -51,6 +53,8 @@ docker run \
     --name smtp_to_telegram \
     -e ST_TELEGRAM_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
     -e ST_TELEGRAM_BOT_TOKEN=<BOT_TOKEN> \
+    -e ST_VK_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
+    -e ST_VK_BOT_TOKEN=<BOT_TOKEN> \    
     -e ST_TELEGRAM_MESSAGE_TEMPLATE="Subject: {subject}\\n\\n{body}" \
     kostyaesmukov/smtp_to_telegram
 ```
