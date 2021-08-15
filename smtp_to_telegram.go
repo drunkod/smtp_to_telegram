@@ -192,6 +192,8 @@ func SendEmailToTelegram(e *mail.Envelope,
 	telegramConfig *TelegramConfig) error {
 
 	message := FormatEmail(e, telegramConfig.messageTemplate)
+	telegramChatIds := telegramConfig.telegramChatIds
+	socialName := "NotValid"
 	if strings.HasSuffix(MapAddresses(e.RcptTo), "@tg.com") == true {
 		socialName := "tg"
 		telegramChatIds := telegramConfig.telegramChatIds + "," + FormatTgChatId(e)
@@ -201,8 +203,6 @@ func SendEmailToTelegram(e *mail.Envelope,
 		telegramChatIds := telegramConfig.vkChatIds + "," + FormatVKChatId(e)
         fmt.Println("email is @vk.com")
     } else {
-		socialName := "NotValid"
-		telegramChatIds := telegramConfig.telegramChatIds
 		message := "Not valid email adress"
         fmt.Println("Not valid email adress")
     }
