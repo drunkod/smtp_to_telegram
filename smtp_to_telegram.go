@@ -192,20 +192,9 @@ func SendEmailToTelegram(e *mail.Envelope,
 	telegramConfig *TelegramConfig) error {
 
 	message := FormatEmail(e, telegramConfig.messageTemplate)
-	telegramChatIds := telegramConfig.telegramChatIds
-	socialName := "NotValid"
 	if strings.HasSuffix(MapAddresses(e.RcptTo), "@tg.com") == true {
-		socialName := "tg"
+		// socialName := "tg"
 		telegramChatIds := telegramConfig.telegramChatIds + "," + FormatTgChatId(e)
-		fmt.Println("email is @tg.com")
-	} else if strings.HasSuffix(MapAddresses(e.RcptTo), "@vk.com") == true {
-		socialName := "vk"
-		telegramChatIds := telegramConfig.vkChatIds + "," + FormatVKChatId(e)
-        fmt.Println("email is @vk.com")
-    } else {
-		message := "Not valid email adress"
-        fmt.Println("Not valid email adress")
-    }
 		for _, chatId := range strings.Split(telegramChatIds, ",") {
 
 			// Apparently the native golang's http client supports
@@ -213,7 +202,7 @@ func SendEmailToTelegram(e *mail.Envelope,
 			// out of the box.
 			//
 			// See: https://golang.org/pkg/net/http/#ProxyFromEnvironment
-			if (socialName == "tg") || (socialName == "NotValid"){
+			
 				resp, err := http.PostForm(
 					fmt.Sprintf(
 						"%sbot%s/sendMessage?disable_web_page_preview=true",
@@ -233,8 +222,21 @@ func SendEmailToTelegram(e *mail.Envelope,
 						SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
 					))
 				}			
-			}
-			if socialName == "vk" {
+
+		}
+
+
+		fmt.Println("email is @tg.com")
+	} else if strings.HasSuffix(MapAddresses(e.RcptTo), "@vk.com") == true {
+		// socialName := "vk"
+		telegramChatIds := telegramConfig.vkChatIds + "," + FormatVKChatId(e)
+		for _, chatId := range strings.Split(telegramChatIds, ",") {
+
+			// Apparently the native golang's http client supports
+			// http, https and socks5 proxies via HTTP_PROXY/HTTPS_PROXY env vars
+			// out of the box.
+			//
+			// See: https://golang.org/pkg/net/http/#ProxyFromEnvironment
 				resp, err := http.PostForm(
 					fmt.Sprintf(
 						"%s/method/%s",
@@ -257,10 +259,48 @@ func SendEmailToTelegram(e *mail.Envelope,
 						SanitizeBotToken(EscapeMultiLine(body), telegramConfig.vkBotToken),
 					))
 				}
-			}	
+
 	
 
 		}
+
+        fmt.Println("email is @vk.com")
+
+    } else {
+		message := "Not valid email adress"
+		telegramChatIds := telegramConfig.telegramChatIds
+		for _, chatId := range strings.Split(telegramChatIds, ",") {
+
+			// Apparently the native golang's http client supports
+			// http, https and socks5 proxies via HTTP_PROXY/HTTPS_PROXY env vars
+			// out of the box.
+			//
+			// See: https://golang.org/pkg/net/http/#ProxyFromEnvironment
+			
+				resp, err := http.PostForm(
+					fmt.Sprintf(
+						"%sbot%s/sendMessage?disable_web_page_preview=true",
+						telegramConfig.telegramApiPrefix,
+						telegramConfig.telegramBotToken,
+					),
+					url.Values{"chat_id": {chatId}, "text": {message}},
+				)
+				if err != nil {
+					return errors.New(SanitizeBotToken(err.Error(), telegramConfig.telegramBotToken))
+				}
+				if resp.StatusCode != 200 {
+					body, _ := ioutil.ReadAll(resp.Body)
+					return errors.New(fmt.Sprintf(
+						"Non-200 response from Telegram: (%d) %s",
+						resp.StatusCode,
+						SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
+					))
+				}			
+
+		}		
+        fmt.Println("Not valid email adress")
+    }
+
 	return nil
 }
 
