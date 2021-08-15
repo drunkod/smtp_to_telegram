@@ -32,6 +32,9 @@ type TelegramConfig struct {
 	telegramChatIds   string
 	telegramBotToken  string
 	telegramApiPrefix string
+	vkChatIds   string
+	vkBotToken  string
+	vkApiPrefix string
 	messageTemplate   string
 }
 
@@ -65,6 +68,9 @@ func main() {
 			telegramChatIds:   c.String("telegram-chat-ids"),
 			telegramBotToken:  c.String("telegram-bot-token"),
 			telegramApiPrefix: c.String("telegram-api-prefix"),
+			vkChatIds: c.String("vk-chat-ids"),
+			vkBotToken: c.String("vk-bot-token"),
+			vkApiPrefix: c.String("vk-api-prefix"),
 			messageTemplate:   c.String("message-template"),
 		}
 		d, err := SmtpStart(smtpConfig, telegramConfig)
@@ -103,6 +109,22 @@ func main() {
 			Value:   "https://api.telegram.org/",
 			EnvVars: []string{"ST_TELEGRAM_API_PREFIX"},
 		},
+		&cli.StringFlag{
+			Name:    "vk-chat-ids",
+			Usage:   "vk: comma-separated list of chat ids",
+			EnvVars: []string{"ST_VK_CHAT_IDS"},
+		},
+		&cli.StringFlag{
+			Name:    "vk-bot-token",
+			Usage:   "vk: bot token",
+			EnvVars: []string{"ST_VK_BOT_TOKEN"},
+		},
+		&cli.StringFlag{
+			Name:    "vk-api-prefix",
+			Usage:   "vk: API url prefix",
+			Value:   "https://api.vk.com",
+			EnvVars: []string{"ST_VK_API_PREFIX"},
+		},		
 		&cli.StringFlag{
 			Name:    "message-template",
 			Usage:   "Telegram message template",
@@ -170,7 +192,20 @@ func SendEmailToTelegram(e *mail.Envelope,
 	telegramConfig *TelegramConfig) error {
 
 	message := FormatEmail(e, telegramConfig.messageTemplate)
-	telegramChatIds := telegramConfig.telegramChatIds + "," + FormatTgChatId(e)
+	if strings.HasSuffix(MapAddresses(e.RcptTo), "@tg.com") == true {
+		socialName := "tg"
+		telegramChatIds := telegramConfig.telegramChatIds + "," + FormatTgChatId(e)
+		fmt.Println("email is @tg.com")
+	} else if strings.HasSuffix(MapAddresses(e.RcptTo), "@vk.com") == true {
+		socialName := "vk"
+		telegramChatIds := telegramConfig.vkChatIds + "," + FormatVKChatId(e)
+        fmt.Println("email is @vk.com")
+    } else {
+		socialName := "NotValid"
+		telegramChatIds := telegramConfig.telegramChatIds
+		message := "Not valid email adress"
+        fmt.Println("Not valid email adress")
+    }
 		for _, chatId := range strings.Split(telegramChatIds, ",") {
 
 			// Apparently the native golang's http client supports
@@ -178,26 +213,53 @@ func SendEmailToTelegram(e *mail.Envelope,
 			// out of the box.
 			//
 			// See: https://golang.org/pkg/net/http/#ProxyFromEnvironment
-			resp, err := http.PostForm(
-				fmt.Sprintf(
-					"%sbot%s/sendMessage?disable_web_page_preview=true",
-					telegramConfig.telegramApiPrefix,
-					telegramConfig.telegramBotToken,
-				),
-				url.Values{"chat_id": {chatId}, "text": {message}},
-			)
+			if (socialName == "tg") || (socialName == "NotValid"){
+				resp, err := http.PostForm(
+					fmt.Sprintf(
+						"%sbot%s/sendMessage?disable_web_page_preview=true",
+						telegramConfig.telegramApiPrefix,
+						telegramConfig.telegramBotToken,
+					),
+					url.Values{"chat_id": {chatId}, "text": {message}},
+				)
+				if err != nil {
+					return errors.New(SanitizeBotToken(err.Error(), telegramConfig.telegramBotToken))
+				}
+				if resp.StatusCode != 200 {
+					body, _ := ioutil.ReadAll(resp.Body)
+					return errors.New(fmt.Sprintf(
+						"Non-200 response from Telegram: (%d) %s",
+						resp.StatusCode,
+						SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
+					))
+				}			
+			}
+			if socialName == "vk" {
+				resp, err := http.PostForm(
+					fmt.Sprintf(
+						"%s/method/%s",
+						telegramConfig.vkApiPrefix,
+						"messages.send",
+					),
+					url.Values{"peer_id": {chatId},
+					"message": {message},
+					"access_token": {telegramConfig.vkBotToken},
+					"v":            {"5.67"}},
+				)
+				if err != nil {
+					return errors.New(SanitizeBotToken(err.Error(), telegramConfig.vkBotToken))
+				}
+				if resp.StatusCode != 200 {
+					body, _ := ioutil.ReadAll(resp.Body)
+					return errors.New(fmt.Sprintf(
+						"Non-200 response from Vk: (%d) %s",
+						resp.StatusCode,
+						SanitizeBotToken(EscapeMultiLine(body), telegramConfig.vkBotToken),
+					))
+				}
+			}	
 	
-			if err != nil {
-				return errors.New(SanitizeBotToken(err.Error(), telegramConfig.telegramBotToken))
-			}
-			if resp.StatusCode != 200 {
-				body, _ := ioutil.ReadAll(resp.Body)
-				return errors.New(fmt.Sprintf(
-					"Non-200 response from Telegram: (%d) %s",
-					resp.StatusCode,
-					SanitizeBotToken(EscapeMultiLine(body), telegramConfig.telegramBotToken),
-				))
-			}
+
 		}
 	return nil
 }
